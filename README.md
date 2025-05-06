@@ -12,10 +12,14 @@ This project uses Logistic Regression and Random Forest to predict Titanic passe
 # Project Workflow:
 
   Step 1: Data Cleaning
-	•	Replaced missing Age values with median
-	•	Renamed columns for readability
-	•	Encoded categorical features (Sex)
-	•	Binned continuous features (Age, Fare) into deciles
+	
+ 	•	Replaced missing Age values with median
+	
+ 	•	Renamed columns for readability
+	
+ 	•	Encoded categorical features (Sex)
+	
+ 	•	Binned continuous features (Age, Fare) into deciles
 
  Step 2: Exploratory Data Analysis (EDA)
  
@@ -31,14 +35,20 @@ This project uses Logistic Regression and Random Forest to predict Titanic passe
 # Models Built:
 
  > Logistic Regression
-	•	max_iter=1000
-	•	Simple and interpretable
-	•	Fast to train
+	
+ 	•	max_iter=1000
+		
+  	•	Simple and interpretable
+	
+ 	•	Fast to train
 
  > Random Forest Classifier
-	•	n_estimators=100, max_depth=5
-	•	Captures non-linear relationships
-	•	Handles variable importance well
+	
+ 	•	n_estimators=100, max_depth=5
+	
+ 	•	Captures non-linear relationships
+	
+ 	•	Handles variable importance well
 
 # Model Evaluation:
 
@@ -63,13 +73,18 @@ This project uses Logistic Regression and Random Forest to predict Titanic passe
 # Summary:
 
   • Logistic Regression is effective but limited in modeling complex relationships
-	•	Random Forest outperforms with a better AUC and gains curve
-	•	Clear survival trends: young passengers and high-fare payers had better survival chances
+	
+ 	•	Random Forest outperforms with a better AUC and gains curve
+	
+ 	•	Clear survival trends: young passengers and high-fare payers had better survival chances
 
 # Future Enhancements
 
-  • GridSearchCV for hyperparameter tuning
-	•	Add Cabin, Embarked, and interaction features
-	•	Use XGBoost/LightGBM for performance benchmarks
-	•	Deploy as Streamlit or Flask app
+  	• GridSearchCV for hyperparameter tuning
+	
+ 	•	Add Cabin, Embarked, and interaction features
+	
+ 	•	Use XGBoost/LightGBM for performance benchmarks
+	
+ 	•	Deploy as Streamlit or Flask app
 	
