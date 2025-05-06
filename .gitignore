@@ -1,174 +1,106 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import roc_auc_score, roc_curve, auc
+import numpy as np
 
-# C extensions
-*.so
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Load data
+titanic_df = pd.read_csv("titanic.csv")
 
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# Rename columns
+titanic_df.rename(columns={
+    "Siblings/Spouses Aboard": "SibSp",
+    "Parents/Children Aboard": "Parch"
+}, inplace=True)
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# Handle missing values
+titanic_df["Age"].fillna(titanic_df["Age"].median(), inplace=True)
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
+# Convert categorical to numeric
+titanic_df["Sex"] = titanic_df["Sex"].map({"male": 0, "female": 1})
 
-# Translations
-*.mo
-*.pot
+# Binning
+titanic_df["Age_bin"] = pd.qcut(titanic_df["Age"], 10, duplicates='drop')
+titanic_df["Fare_bin"] = pd.qcut(titanic_df["Fare"], 10, duplicates='drop')
 
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# Histograms
+fig, axs = plt.subplots(2, 2, figsize=(12, 10))
+sns.histplot(titanic_df["Age"], kde=True, ax=axs[0, 0], color="skyblue").set(title="Age Distribution")
+sns.histplot(titanic_df["Fare"], kde=True, ax=axs[0, 1], color="lightgreen").set(title="Fare Distribution")
+sns.countplot(x="Sex", data=titanic_df, ax=axs[1, 0]).set(title="Sex Frequency")
+sns.countplot(x="Pclass", data=titanic_df, ax=axs[1, 1]).set(title="Passenger Class Frequency")
+plt.tight_layout()
+plt.show()
 
-# Flask stuff:
-instance/
-.webassets-cache
+# Marginal Survival Rates
+age_survival = titanic_df.groupby("Age_bin")["Survived"].mean().reset_index()
+fare_survival = titanic_df.groupby("Fare_bin")["Survived"].mean().reset_index()
 
-# Scrapy stuff:
-.scrapy
+fig, axs = plt.subplots(1, 2, figsize=(14, 5))
+sns.barplot(x="Age_bin", y="Survived", data=age_survival, ax=axs[0])
+axs[0].tick_params(axis='x', rotation=90)
+axs[0].set_title("Survival Rate by Age Quantile")
 
-# Sphinx documentation
-docs/_build/
+sns.barplot(x="Fare_bin", y="Survived", data=fare_survival, ax=axs[1])
+axs[1].tick_params(axis='x', rotation=90)
+axs[1].set_title("Survival Rate by Fare Quantile")
 
-# PyBuilder
-.pybuilder/
-target/
+plt.tight_layout()
+plt.show()
 
-# Jupyter Notebook
-.ipynb_checkpoints
 
-# IPython
-profile_default/
-ipython_config.py
+# Feature selection
+features = ["Pclass", "Sex", "Age", "SibSp", "Parch", "Fare"]
+X = titanic_df[features]
+y = titanic_df["Survived"]
 
-# pyenv
-#   For a library or package, you might want to ignore these files since the code is
-#   intended to run in multiple environments; otherwise, check them in:
-# .python-version
 
-# pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+# Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-# UV
-#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#uv.lock
+# Logistic Regression
+log_model = LogisticRegression(max_iter=1000)
+log_model.fit(X_train, y_train)
+log_probs = log_model.predict_proba(X_test)[:, 1]
 
-# poetry
-#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
-#   This is especially recommended for binary packages to ensure reproducibility, and is more
-#   commonly ignored for libraries.
-#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
-#poetry.lock
+# Random Forest
+rf_model = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
+rf_model.fit(X_train, y_train)
+rf_probs = rf_model.predict_proba(X_test)[:, 1]
 
-# pdm
-#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
-#pdm.lock
-#   pdm stores project-wide configurations in .pdm.toml, but it is recommended to not include it
-#   in version control.
-#   https://pdm.fming.dev/latest/usage/project/#working-with-version-control
-.pdm.toml
-.pdm-python
-.pdm-build/
+# ROC Curve
+fpr_log, tpr_log, _ = roc_curve(y_test, log_probs)
+fpr_rf, tpr_rf, _ = roc_curve(y_test, rf_probs)
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
-__pypackages__/
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_log, tpr_log, label=f"Logistic Regression (AUC = {roc_auc_score(y_test, log_probs):.2f})")
+plt.plot(fpr_rf, tpr_rf, label=f"Random Forest (AUC = {roc_auc_score(y_test, rf_probs):.2f})")
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curve")
+plt.legend(loc="lower right")
+plt.grid()
+plt.show()
 
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
+def plot_gains(y_true, y_scores, title="Gains Chart"):
+    df = pd.DataFrame({"y_true": y_true, "score": y_scores})
+    df.sort_values("score", ascending=False, inplace=True)
+    df["cumulative_actual"] = df["y_true"].cumsum()
+    df["cumulative_perc_actual"] = df["cumulative_actual"] / df["y_true"].sum()
+    df["cumulative_perc_total"] = np.arange(1, len(df) + 1) / len(df)
 
-# SageMath parsed files
-*.sage.py
+    plt.figure(figsize=(8, 6))
+    plt.plot(df["cumulative_perc_total"], df["cumulative_perc_actual"], label="Model")
+    plt.plot([0, 1], [0, 1], "k--", label="Random")
+    plt.title(title)
+    plt.xlabel("Cumulative % of Population")
+    plt.ylabel("Cumulative % of Survived")
+    plt.legend()
+    plt.grid()
+    plt.show()
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
-
-# Ruff stuff:
-.ruff_cache/
-
-# PyPI configuration file
-.pypirc
